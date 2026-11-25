@@ -680,21 +680,33 @@ window.APP = (function () {
   }
   function safeName(s) { return (s || "").replace(/[<>&"]/g, ""); }
 
-  /* ── 登录入口：顶栏按钮 + 密码弹窗 ── */
+  /* ── 登录入口：顶栏下方一条通栏 + 密码弹窗 ── */
   function mountAuth() {
     var bar = document.querySelector(".topbar");
     if (!bar) return;
 
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "authbtn" + (uid ? " on" : "");
-    btn.id = "authBtn";
-    btn.innerHTML = '<span class="dot"></span><span class="txt"></span>';
-    var txt = btn.querySelector(".txt");
-    txt.textContent = uid ? "已登录" : "登录";
-    var themeBtn = document.getElementById("themeBtn");
-    if (themeBtn && themeBtn.parentNode === bar) bar.insertBefore(btn, themeBtn);
-    else bar.appendChild(btn);
+    var strip = document.createElement("div");
+    strip.className = "authbar" + (uid ? " on" : "");
+    strip.innerHTML =
+      '<span class="msg"></span>' +
+      '<button type="button" class="act"></button>';
+    bar.parentNode.insertBefore(strip, bar.nextSibling);
+
+    var msg = strip.querySelector(".msg");
+    var act = strip.querySelector(".act");
+
+    function paint() {
+      if (uid) {
+        strip.classList.add("on");
+        msg.textContent = "已登录 · 同步码 " + uid.slice(0, 8) + "…";
+        act.textContent = "退出";
+      } else {
+        strip.classList.remove("on");
+        msg.textContent = "还没登录，现在只存在这台设备";
+        act.textContent = "登录同步";
+      }
+    }
+    paint();
 
     var wrap = document.createElement("div");
     wrap.className = "authwrap";
@@ -702,7 +714,7 @@ window.APP = (function () {
       '<div class="authbox">' +
       '<button class="x" type="button" aria-label="关闭">×</button>' +
       '<h2>进入你的食单</h2>' +
-      '<p>输入你设过的密码，回到自己的照片和打卡。<br>没设过就现在设一个，别人不会看到你的内容。</p>' +
+      '<p>输入你设过的密码，回到自己的照片和打卡。<br>没设过就现在设一个，别人看不到你的内容。</p>' +
       '<input type="password" id="authPw" placeholder="密码（至少 4 位）" autocomplete="current-password">' +
       '<button class="go" type="button">进入</button>' +
       '<p class="err"></p>' +
@@ -730,7 +742,10 @@ window.APP = (function () {
         .catch(function (e) { err.textContent = "失败：" + (e && e.message); });
     }
 
-    btn.addEventListener("click", function () { if (!uid) open(); });
+    act.addEventListener("click", function () {
+      if (uid) { signOut(); location.reload(); }
+      else open();
+    });
     wrap.querySelector(".x").addEventListener("click", close);
     wrap.querySelector(".go").addEventListener("click", submit);
     input.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });

@@ -144,21 +144,29 @@ img{display:block;max-width:100%}
   .topbar{gap:.4rem}
   .topbar .spacer{display:none}
   .search{flex:1 1 auto;min-width:0;max-width:none}
-  .authbtn{flex:0 0 auto;padding:0 .55rem;font-size:.74rem;gap:.3rem}
   .iconbtn{flex:0 0 auto}
+  .authbar{font-size:.74rem;padding:.5rem .7rem}
 }
 
-/* 登录 */
-.authbtn{
-  display:inline-flex;align-items:center;gap:.35rem;
-  height:36px;padding:0 .75rem;border-radius:999px;
-  border:1px solid var(--line);background:var(--panel);
-  color:var(--fg-2);font-size:.78rem;font-weight:500;
+/* 登录条 */
+.authbar{
+  position:relative;z-index:2;
+  display:flex;align-items:center;gap:.6rem;
+  max-width:1240px;margin:0 auto;
+  padding:.55rem .9rem;margin-bottom:.4rem;
+  border:1px solid var(--line);border-radius:12px;
+  background:var(--panel);
+  font-size:.78rem;color:var(--fg-3);
 }
-.authbtn:hover{border-color:var(--line-2);color:var(--fg)}
-.authbtn .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
-.authbtn.on .dot{background:var(--jade)}
-.authbtn.on{color:var(--jade);border-color:color-mix(in srgb, var(--jade) 40%, var(--line))}
+.authbar .msg{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.authbar .act{
+  flex:0 0 auto;padding:.32rem .7rem;border-radius:999px;
+  font-size:.76rem;font-weight:600;
+  border:1px solid var(--gold);background:var(--gold);color:#1A1408;
+}
+.authbar.on{border-color:color-mix(in srgb, var(--jade) 35%, var(--line))}
+.authbar.on .act{border-color:var(--line-2);background:transparent;color:var(--fg-2);font-weight:500}
+:root[data-theme="light"] .authbar .act{color:#FFFDF6}
 
 .authwrap{
   position:fixed;inset:0;z-index:110;display:grid;place-items:center;
