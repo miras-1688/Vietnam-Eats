@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>食单 · 越南美食探索</title>
+<meta name="theme-color" content="#0B0E0C">
+<link rel="icon" href="assets/app.ico">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Newsreader:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<script>
+  (function(){
+    try{
+      var s = localStorage.getItem("hn-theme");
+      var d = s || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", d);
+    }catch(e){ document.documentElement.setAttribute("data-theme","dark"); }
+  })();
+</script>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="glow" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="logotype" href="index.html">
+    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M32 8C32.9 14.2 34.8 16.1 41 17C34.8 17.9 32.9 19.8 32 26C31.1 19.8 29.2 17.9 23 17C29.2 16.1 31.1 14.2 32 8Z" fill="currentColor"/>
+      <ellipse cx="32" cy="40" rx="19" ry="5.5" stroke="currentColor" stroke-width="3.2"/>
+      <path d="M13 40a19 19 0 0 0 38 0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+    </svg>
+    <span class="lt">越南美食探索</span>
+  </a>
+  <div class="spacer"></div>
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/>
+    </svg>
+    <input id="q" type="search" placeholder="筛这一页" aria-label="按菜名筛选" autocomplete="off">
+  </div>
+  <button class="iconbtn" id="themeBtn" aria-label="切换主题">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4" stroke-linecap="round"/>
+    </svg>
+  </button>
+</header>
+
+<div class="layout">
+  <main id="list">
+    <div class="page-head">
+      <a class="crumb" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        首页
+      </a>
+      <h1>食单</h1>
+      <p class="ph-sub" id="phSub">按街区筛，点卡片看细节，右下角加照片。</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="chips" id="chips" aria-label="按类别筛选"></div>
+      <div class="tools-row">
+        <span id="shown">—</span>
+        <div class="seg" id="regionSeg" style="margin-left:auto">
+          <button type="button" data-r="all" aria-pressed="true">全国</button>
+          <button type="button" data-r="bac" aria-pressed="false">北部</button>
+          <button type="button" data-r="trung" aria-pressed="false">中部</button>
+          <button type="button" data-r="nam" aria-pressed="false">南部</button>
+        </div>
+        <div class="seg" id="viewSeg">
+          <button type="button" data-v="all" aria-pressed="true">全部</button>
+          <button type="button" data-v="left" aria-pressed="false">没吃</button>
+          <button type="button" data-v="done" aria-pressed="false">已吃</button>
+        </div>
+        <div class="seg" id="sortSeg">
+          <button type="button" data-s="default" aria-pressed="true">原序</button>
+          <button type="button" data-s="rating" aria-pressed="false">评分</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="grid" id="grid" aria-label="食单"></section>
+    <p class="album-empty hidden" id="gridEmpty">这个筛选下什么都没有。</p>
+    <div id="addWrap"></div>
+
+    <section class="section" id="routes">
+      <div class="section-head">
+        <h2>四条走法</h2>
+        <span class="sub">按街区串成一串，一次出门吃一条</span>
+      </div>
+      <p class="lead">点路线里的菜名，会跳到那张卡片。比按单子随机挑省事。</p>
+      <div class="routes" id="routesWrap"></div>
+    </section>
+
+    <section class="section" id="album">
+      <div class="section-head">
+        <h2>相册</h2>
+        <span class="sub">你拍的都在这儿</span>
+      </div>
+      <p class="lead">在食单里把照片拖到卡片上，或者直接把文件扔进 <b>images</b> 文件夹，刷新就有。</p>
+      <div class="album" id="albumGrid"></div>
+      <div class="album-empty" id="albumEmpty">还没有照片。</div>
+    </section>
+
+    <section class="section" id="about">
+      <div class="section-head">
+        <h2>吃之前</h2>
+        <span class="sub">水、价格、点单</span>
+      </div>
+      <ul class="know" id="know"></ul>
+
+      <div class="panel" style="margin-top:1.4rem">
+        <h3>换设备 / 备份</h3>
+        <p style="font-size:.8rem;color:var(--fg-3);line-height:1.65;margin-bottom:.8rem">
+          打卡和笔记存在这台电脑的浏览器里。复制下面这串，到别的设备粘回去就能恢复。
+        </p>
+        <div class="drawer-actions">
+          <button class="btn" type="button" id="btnCopy">复制备份</button>
+          <button class="btn" type="button" id="btnRestore">恢复</button>
+          <button class="btn" type="button" id="btnClear">清空</button>
+        </div>
+        <textarea id="backupBox" placeholder="备份文本粘在这里"
+          style="width:100%;margin-top:.7rem;min-height:78px;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:.72rem;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:.55rem .6rem;color:var(--fg)"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <aside class="side">
+    <div class="panel">
+      <h3>进度</h3>
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 80 80" aria-hidden="true">
+          <circle class="tr" cx="40" cy="40" r="34"/>
+          <circle class="ba" id="ringBar" cx="40" cy="40" r="34"
+                  stroke-dasharray="213.63" stroke-dashoffset="213.63"/>
+        </svg>
+        <div class="ring-num">
+          <b id="doneNum">0</b>
+          <span>共 <span id="totalNum">52</span> 样</span>
+          <span id="daysNum" style="display:block;margin-top:.2rem"></span>
+        </div>
+      </div>
+      <div class="axis">
+        <div class="axis-track">
+          <i class="axis-fill" id="axisFill"></i>
+          <i class="axis-tick" style="left:25%"></i>
+          <i class="axis-tick" style="left:50%"></i>
+          <i class="axis-tick" style="left:75%"></i>
+          <b class="axis-dot" id="axisDot"></b>
+        </div>
+        <div class="axis-meta">
+          <span><b id="axisDone">0</b> 已吃</span>
+          <span id="axisTotal">共 0 样</span>
+        </div>
+      </div>
+      <div class="bars" id="bars"></div>
+    </div>
+
+    <div class="panel">
+      <h3>离越日期</h3>
+      <input type="date" id="target" aria-label="离越日期"
+        style="width:100%;padding:.45rem .55rem;font:inherit;font-size:.85rem;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:8px">
+      <p style="font-size:.75rem;color:var(--fg-3);margin-top:.5rem;line-height:1.6">改这个，倒计时和「每天吃几样」会重算。</p>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <span>越南美食探索计划</span>
+  <span class="fsp"></span>
+  <a href="upload.html">手机传图</a>
+  <a href="index.html">首页</a>
+  <span id="fCount"></span>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle"></aside>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/plan.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>传照片 · 越南食单</title>
+<meta name="theme-color" content="#0B0E0C">
+<link rel="icon" href="assets/app.ico">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Newsreader:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+<script>
+  (function(){
+    try{
+      var s = localStorage.getItem("hn-theme");
+      var d = s || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", d);
+    }catch(e){ document.documentElement.setAttribute("data-theme","dark"); }
+  })();
+</script>
+<style>
+  .up{max-width:640px;margin:0 auto;padding:0 0 4rem}
+  .up-head h1{
+    font-family:var(--f-sign);font-size:1.45rem;letter-spacing:.08em;font-weight:600;
+  }
+  .up-head p{font-size:.82rem;color:var(--fg-2);margin-top:.45rem;line-height:1.65}
+  .up-search{margin:.9rem 0 .4rem;position:relative}
+  .up-search input{
+    width:100%;padding:.7rem .9rem;font:inherit;font-size:.95rem;color:var(--fg);
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  }
+  .up-search input:focus{outline:none;border-color:var(--line-2)}
+  .cat-head{
+    margin:1.5rem 0 .55rem;font-size:.72rem;letter-spacing:.16em;
+    color:var(--fg-3);text-transform:uppercase;font-weight:600;
+  }
+  .row{
+    display:flex;align-items:center;gap:.8rem;width:100%;
+    padding:.55rem;margin-bottom:.5rem;text-align:left;
+    border:1px solid var(--line);border-radius:14px;background:var(--card-bg);
+    transition:border-color .18s,background .18s;
+  }
+  .row:active{border-color:var(--gold);background:var(--card-hover)}
+  .row .th{
+    width:68px;height:51px;flex:0 0 auto;border-radius:9px;overflow:hidden;
+    background:var(--panel);display:grid;place-items:center;
+    font-size:1.2rem;color:var(--fg-3);border:1px dashed var(--line-2);
+  }
+  .row .th.has{border-style:solid;border-color:transparent}
+  .row .th img{width:100%;height:100%;object-fit:cover;display:block}
+  .row .nm{flex:1;min-width:0}
+  .row .vn{display:block;font-family:var(--f-vn);font-size:1.02rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .zh{display:block;font-size:.75rem;color:var(--fg-3);margin-top:.1rem}
+  .row .cnt{flex:0 0 auto;font-size:.7rem;color:var(--jade);font-weight:600}
+  .row .plus{flex:0 0 auto;color:var(--gold);font-size:1.15rem;line-height:1}
+  .row.busy{opacity:.55;pointer-events:none}
+  .up-foot{
+    margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--line);
+    font-size:.75rem;color:var(--fg-3);line-height:1.7;
+  }
+  .up-foot b{color:var(--fg-2)}
+
+  /* 照片抽屉 */
+  .sheet-scrim{
+    position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.6);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .sheet-scrim.open{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:95;max-height:82vh;
+    background:var(--bg-2);border-top:1px solid var(--line);
+    border-radius:18px 18px 0 0;
+    transform:translateY(102%);transition:transform .3s cubic-bezier(.3,.9,.2,1);
+    display:flex;flex-direction:column;
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .sheet.open{transform:none}
+  .sheet-head{
+    display:flex;align-items:center;gap:.6rem;
+    padding:1rem 1rem .7rem;border-bottom:1px solid var(--line);
+  }
+  .sheet-head h2{font-family:var(--f-vn);font-size:1.12rem;font-weight:500}
+  .sheet-head .x{margin-left:auto;width:32px;height:32px;color:var(--fg-3);font-size:1.3rem;line-height:1}
+  .sheet-body{
+    padding:.8rem 1rem;overflow-y:auto;
+    display:grid;gap:.6rem;grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .tile{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  .tile.cover{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .tile img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+  .tile .ops{display:flex;gap:.3rem;padding:.35rem}
+  .tile .ops button{
+    flex:1;padding:.34rem 0;border-radius:6px;font-size:.72rem;
+    border:1px solid var(--line);color:var(--fg-2);
+  }
+  .tile .ops button.on{background:var(--gold);border-color:var(--gold);color:#1A1408}
+  .tile .ops button.del{flex:0 0 auto;width:38px;color:var(--chili);border-color:transparent}
+  :root[data-theme="light"] .tile .ops button.on{color:#FFFDF6}
+  .sheet-foot{padding:.7rem 1rem 1rem;border-top:1px solid var(--line);display:flex;gap:.5rem}
+  .sheet-foot button{
+    flex:1;padding:.72rem;border-radius:10px;font-size:.9rem;font-weight:600;
+    border:1px solid var(--gold);background:var(--gold);color:#1A1408;
+  }
+  :root[data-theme="light"] .sheet-foot button{color:#FFFDF6}
+  .sheet-empty{padding:1.4rem;text-align:center;color:var(--fg-3);font-size:.85rem;grid-column:1/-1}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="glow" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="logotype" href="index.html">
+    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+      <path d="M32 8C32.9 14.2 34.8 16.1 41 17C34.8 17.9 32.9 19.8 32 26C31.1 19.8 29.2 17.9 23 17C29.2 16.1 31.1 14.2 32 8Z" fill="currentColor"/>
+      <ellipse cx="32" cy="40" rx="19" ry="5.5" stroke="currentColor" stroke-width="3.2"/>
+      <path d="M13 40a19 19 0 0 0 38 0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+    </svg>
+    <span class="lt">越南美食探索</span>
+  </a>
+  <div class="spacer"></div>
+  <button class="iconbtn" id="themeBtn" aria-label="切换主题">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4" stroke-linecap="round"/>
+    </svg>
+  </button>
+</header>
+
+<main class="up">
+  <div class="up-head">
+    <h1>给菜加照片</h1>
+    <p>点一道菜 → 拍照或从相册挑。手机上会先摆正、加白边、压到 1600×1200 再传，传完立刻生效。</p>
+  </div>
+
+  <div class="up-search">
+    <input id="q" type="search" placeholder="搜菜名 / 区域" autocomplete="off" aria-label="搜索菜">
+  </div>
+
+  <div id="list"></div>
+
+  <p class="up-foot">
+    一次一张。同一道菜可以传多张，第一张当封面。<br>
+    传完回 <b>食单</b> 刷新就能看到。
+  </p>
+</main>
+
+<input type="file" id="picker" accept="image/*" hidden>
+
+<div class="sheet-scrim" id="sheetScrim"></div>
+<section class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-head">
+    <h2 id="sheetTitle">照片</h2>
+    <button class="x" id="sheetX" type="button" aria-label="关闭">×</button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot">
+    <button id="sheetAdd" type="button">＋ 再加一张</button>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/upload.js"></script>
+</body>
+</html>

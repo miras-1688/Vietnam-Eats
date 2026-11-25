@@ -1,0 +1,20 @@
+# 照片和本机状态不进步仓库
+images/*.jpg
+images/*.jpeg
+images/*.png
+images/*.webp
+images/thumbs/
+images/covers.json
+
+# 保留目录结构
+!images/.gitkeep
+
+# 系统 / 编辑器
+Thumbs.db
+.DS_Store
+.vscode/
+*.log
+
+# 临时文件
+_*.html
+node_modules/
