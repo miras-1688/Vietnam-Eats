@@ -235,6 +235,7 @@ window.APP = (function () {
   var urlCache = {};   // key -> {url, thumbUrl}
   var thumbMap = {};   // url -> thumbUrl
   var entries = {};    // id -> [{url, thumb, source, key, name, ts}]
+  var serverOk = false; // 上次探测：本地服务在不在
 
   function openDB() {
     if (dbP) return dbP;
@@ -293,8 +294,21 @@ window.APP = (function () {
     });
   }
 
+  /* 浏览器存储不可靠时也别把页面卡死 */
+  function withTimeout(p, ms, fallback) {
+    return new Promise(function (resolve) {
+      var done = false;
+      var t = setTimeout(function () { if (!done) { done = true; resolve(fallback); } }, ms);
+      p.then(function (v) { if (!done) { done = true; clearTimeout(t); resolve(v); } },
+             function () { if (!done) { done = true; clearTimeout(t); resolve(fallback); } });
+    });
+  }
+
   function loadLocal() {
-    return Promise.all([dbAll("photos"), dbAll("meta")]).then(function (r) {
+    return Promise.all([
+      withTimeout(dbAll("photos"), 1800, []),
+      withTimeout(dbAll("meta"), 1800, [])
+    ]).then(function (r) {
       var recs = r[0], metas = r[1], covers = {};
       metas.forEach(function (m) {
         if (m && typeof m.k === "string" && m.k.indexOf("cover:") === 0) covers[m.k.slice(6)] = m.v;
@@ -334,7 +348,10 @@ window.APP = (function () {
 
   function loadServer() {
     return fetch("api/photos", { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        serverOk = r.ok;
+        return r.ok ? r.json() : null;
+      })
       .then(function (j) {
         var out = {};
         if (!j || !j.photos) return out;
@@ -350,7 +367,7 @@ window.APP = (function () {
         });
         return out;
       })
-      .catch(function () { return {}; });
+      .catch(function () { serverOk = false; return {}; });
   }
 
   function loadPhotos() {
@@ -387,27 +404,44 @@ window.APP = (function () {
   }
 
   function postBlob(url, blob) {
-    return fetch(url, {
+    var ctrl = null, timer = null;
+    var opts = {
       method: "POST",
       headers: { "Content-Type": "image/jpeg" },
       body: blob
-    }).then(function (r) { return r.ok; }).catch(function () { return false; });
+    };
+    if (window.AbortController) {
+      ctrl = new AbortController();
+      opts.signal = ctrl.signal;
+      timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, 8000);
+    }
+    return fetch(url, opts).then(function (r) {
+      clearTimeout(timer);
+      return r.ok;
+    }).catch(function () {
+      clearTimeout(timer);
+      return false;
+    });
+  }
+
+  function saveLocal(id, big, small) {
+    var name = id + "__" + Date.now().toString(36) + ".jpg";
+    return withTimeout(dbPut("photos", { key: name, id: id, ts: Date.now(), blob: big, thumb: small }), 3000, false)
+      .then(function (ok) {
+        if (!ok) throw new Error("storage");
+        return { where: "local", name: name };
+      });
   }
 
   /* 有服务端就写进 images/，没有就存进这台设备的浏览器 */
   function addPhoto(id, big, small) {
+    if (!serverOk) return saveLocal(id, big, small);
     var name = id + "__" + Date.now().toString(36) + ".jpg";
     return postBlob("api/photos?name=" + encodeURIComponent(name), big).then(function (ok) {
-      if (ok) {
-        return postBlob("api/thumbs?name=" + encodeURIComponent(name), small)
-          .catch(function () {})
-          .then(function () { return { where: "server", name: name }; });
-      }
-      return dbPut("photos", { key: name, id: id, ts: Date.now(), blob: big, thumb: small })
-        .then(function (saved) {
-          if (!saved) throw new Error("storage");
-          return { where: "local", name: name };
-        });
+      if (!ok) return saveLocal(id, big, small);
+      return postBlob("api/thumbs?name=" + encodeURIComponent(name), small)
+        .catch(function () {})
+        .then(function () { return { where: "server", name: name }; });
     });
   }
 
@@ -422,14 +456,14 @@ window.APP = (function () {
       return fetch("api/photos?name=" + encodeURIComponent(e.name), { method: "DELETE" })
         .then(function (r) { return r.ok; }).catch(function () { return false; });
     }
-    return dbDel("photos", e.key).then(function () {
+    return withTimeout(dbDel("photos", e.key), 3000, false).then(function (ok) {
       var c = urlCache[e.key];
       if (c) {
         try { URL.revokeObjectURL(c.url); } catch (err) {}
         if (c.thumbUrl) { try { URL.revokeObjectURL(c.thumbUrl); } catch (err) {} }
         delete urlCache[e.key];
       }
-      return true;
+      return ok;
     });
   }
 
@@ -440,7 +474,7 @@ window.APP = (function () {
       return fetch("api/cover?name=" + encodeURIComponent(e.name), { method: "POST" })
         .then(function (r) { return r.ok; }).catch(function () { return false; });
     }
-    return dbPut("meta", { k: "cover:" + id, v: e.key });
+    return withTimeout(dbPut("meta", { k: "cover:" + id, v: e.key }), 3000, false);
   }
 
   function allPhotos() {
