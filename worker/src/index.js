@@ -9,7 +9,7 @@
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Key",
+  "Access-Control-Allow-Headers": "Content-Type, X-Key, X-User",
   "Access-Control-Max-Age": "86400"
 };
 

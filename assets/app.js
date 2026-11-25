@@ -680,6 +680,69 @@ window.APP = (function () {
   }
   function safeName(s) { return (s || "").replace(/[<>&"]/g, ""); }
 
+  /* ── 登录入口：顶栏按钮 + 密码弹窗 ── */
+  function mountAuth() {
+    var bar = document.querySelector(".topbar");
+    if (!bar) return;
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "authbtn" + (uid ? " on" : "");
+    btn.id = "authBtn";
+    btn.innerHTML = '<span class="dot"></span><span class="txt"></span>';
+    var txt = btn.querySelector(".txt");
+    txt.textContent = uid ? "已登录" : "登录";
+    var themeBtn = document.getElementById("themeBtn");
+    if (themeBtn && themeBtn.parentNode === bar) bar.insertBefore(btn, themeBtn);
+    else bar.appendChild(btn);
+
+    var wrap = document.createElement("div");
+    wrap.className = "authwrap";
+    wrap.innerHTML =
+      '<div class="authbox">' +
+      '<button class="x" type="button" aria-label="关闭">×</button>' +
+      '<h2>进入你的食单</h2>' +
+      '<p>输入你设过的密码，回到自己的照片和打卡。<br>没设过就现在设一个，别人不会看到你的内容。</p>' +
+      '<input type="password" id="authPw" placeholder="密码（至少 4 位）" autocomplete="current-password">' +
+      '<button class="go" type="button">进入</button>' +
+      '<p class="err"></p>' +
+      '</div>';
+    document.body.appendChild(wrap);
+
+    var input = wrap.querySelector("#authPw");
+    var err = wrap.querySelector(".err");
+
+    function open() {
+      wrap.classList.add("open");
+      setTimeout(function () { input.focus(); }, 50);
+    }
+    function close() {
+      wrap.classList.remove("open");
+      err.textContent = "";
+      input.value = "";
+    }
+    function submit() {
+      var pw = input.value.trim();
+      if (pw.length < 4) { err.textContent = "至少 4 位"; return; }
+      if (!window.crypto || !crypto.subtle) { err.textContent = "这个浏览器不支持加密"; return; }
+      err.textContent = "正在进入…";
+      setPassword(pw).then(function () { location.reload(); })
+        .catch(function (e) { err.textContent = "失败：" + (e && e.message); });
+    }
+
+    btn.addEventListener("click", function () { if (!uid) open(); });
+    wrap.querySelector(".x").addEventListener("click", close);
+    wrap.querySelector(".go").addEventListener("click", submit);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") submit(); });
+    wrap.addEventListener("click", function (e) { if (e.target === wrap) close(); });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mountAuth);
+  } else {
+    mountAuth();
+  }
+
   return {
     get state() { return state; },
     allItems: allItems, byId: byId, catName: catName, doneCount: doneCount,
