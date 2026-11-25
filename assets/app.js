@@ -13,6 +13,20 @@ window.APP = (function () {
   }
   var apiBase = (getCfg("hn-api") || DEFAULT_API).replace(/\/+$/, "");
   var uid = getCfg("hn-uid");
+
+  /* 带 ?u=<同步码> 打开就直接登录，登录后把参数从地址栏抹掉 */
+  (function () {
+    try {
+      var m = /(?:^|[?&#])u=([a-f0-9]{16,64})/i.exec(location.search + location.hash);
+      if (m) {
+        uid = m[1].toLowerCase();
+        localStorage.setItem("hn-uid", uid);
+        if (history.replaceState) {
+          history.replaceState(null, "", location.pathname + location.hash.replace(/[?&#]?u=[a-f0-9]{16,64}/i, ""));
+        }
+      }
+    } catch (e) {}
+  })();
   function api(path) { return apiBase + path; }
   function apiHeaders(extra) {
     var h = extra || {};

@@ -309,10 +309,19 @@
     var apiUrlEl = document.getElementById("apiUrl");
     apiUrlEl.value = APP.apiBase;
 
+    var boxEl = document.getElementById("cloudBox");
+    var tagEl = document.getElementById("cloudTag");
+
     function refreshCloud() {
-      nowEl.textContent = APP.hasCloud()
-        ? "已连接 · 同步码 " + APP.uid.slice(0, 8) + "…（换设备输同一个密码）"
-        : "当前：只存本机";
+      var on = APP.hasCloud();
+      boxEl.classList.toggle("off", !on);
+      if (on) {
+        tagEl.textContent = "已连接 · 同步码 " + APP.uid.slice(0, 8) + "…";
+        nowEl.textContent = "照片和打卡都在云端，换设备输同一个密码即可。";
+      } else {
+        tagEl.textContent = "未登录 —— 点这里，数据才能同步";
+        nowEl.textContent = "";
+      }
     }
     refreshCloud();
 

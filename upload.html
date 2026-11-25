@@ -104,11 +104,15 @@
   .sheet-empty{padding:1.4rem;text-align:center;color:var(--fg-3);font-size:.85rem;grid-column:1/-1}
 
   /* 云同步 */
-  .cloud{margin-top:1.4rem;border-top:1px solid var(--line);padding-top:1rem}
-  .cloud summary{font-size:.78rem;color:var(--fg-3);cursor:pointer;list-style:none}
+  .cloud{margin:.2rem 0 1rem;padding:.75rem .9rem;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .cloud.off{border-color:var(--gold)}
+  .cloud summary{font-size:.86rem;color:var(--fg);cursor:pointer;list-style:none;font-weight:600}
   .cloud summary::-webkit-details-marker{display:none}
-  .cloud summary::before{content:"＋ ";color:var(--gold)}
-  .cloud[open] summary::before{content:"− "}
+  .cloud summary::before{content:"▸ ";color:var(--fg-3)}
+  .cloud[open] summary::before{content:"▾ "}
+  .cloud.off summary::before{color:var(--gold)}
+  #cloudTag{color:var(--fg-2);font-weight:500}
+  .cloud.off #cloudTag{color:var(--gold)}
   .cloud p{font-size:.75rem;color:var(--fg-3);line-height:1.7;margin:.6rem 0}
   .cloud input{
     display:block;width:100%;margin-bottom:.45rem;padding:.55rem .7rem;
@@ -148,25 +152,8 @@
 </header>
 
 <main class="up">
-  <div class="up-head">
-    <h1>给菜加照片</h1>
-    <p>点一道菜 → 拍照或从相册挑。手机上会先摆正、加白边、压到 1600×1200 再传，传完立刻生效。</p>
-  </div>
-
-  <div class="up-search">
-    <input id="q" type="search" placeholder="搜菜名 / 区域" autocomplete="off" aria-label="搜索菜">
-  </div>
-
-  <div id="list"></div>
-
-  <p class="up-foot">
-    一次一张。同一道菜可以传多张，第一张当封面。<br>
-    照片存在<b>这台设备的浏览器</b>里；如果你电脑上的服务开着，就直接写进 <b>images/</b> 文件夹。<br>
-    在 Safari 里「添加到主屏幕」，浏览器更不容易把数据清掉。
-  </p>
-
-  <details class="cloud">
-    <summary>云同步</summary>
+  <details class="cloud" id="cloudBox">
+    <summary><span id="cloudTag">云同步</span></summary>
     <p>设一个密码，照片和打卡就存到云端，换设备输同一个密码就能接着用。<br>
       密码不上传，只在你手机里算成一个空间编号。</p>
     <input id="pw" type="password" placeholder="密码（忘了就找不回来）" autocomplete="new-password">
@@ -182,6 +169,22 @@
       <button id="apiSave" type="button">保存地址</button>
     </details>
   </details>
+
+  <div class="up-head">
+    <h1>给菜加照片</h1>
+    <p>点一道菜 → 拍照或从相册挑。手机上会先摆正、加白边、压到 1600×1200 再传，传完立刻生效。</p>
+  </div>
+
+  <div class="up-search">
+    <input id="q" type="search" placeholder="搜菜名 / 区域" autocomplete="off" aria-label="搜索菜">
+  </div>
+
+  <div id="list"></div>
+
+  <p class="up-foot">
+    一次一张。同一道菜可以传多张，第一张当封面。<br>
+    照片存在<b>这台设备的浏览器</b>里；登录云同步后手机电脑共用一份。
+  </p>
 </main>
 
 <input type="file" id="picker" accept="image/*" hidden>
