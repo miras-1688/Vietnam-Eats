@@ -303,14 +303,37 @@
   });
 
   /* ── 云同步设置 ── */
-  var apiUrlEl = document.getElementById("apiUrl");
-  if (apiUrlEl) {
-    apiUrlEl.value = APP.apiBase || "";
-    document.getElementById("apiKey").value = APP.apiKey || "";
+  var pwEl = document.getElementById("pw");
+  if (pwEl) {
     var nowEl = document.getElementById("apiNow");
-    nowEl.textContent = APP.apiBase ? "当前：云同步已开启" : "当前：只存本机";
+    var apiUrlEl = document.getElementById("apiUrl");
+    apiUrlEl.value = APP.apiBase;
+
+    function refreshCloud() {
+      nowEl.textContent = APP.hasCloud()
+        ? "已连接 · 同步码 " + APP.uid.slice(0, 8) + "…（换设备输同一个密码）"
+        : "当前：只存本机";
+    }
+    refreshCloud();
+
+    document.getElementById("pwSave").addEventListener("click", function () {
+      var pw = pwEl.value.trim();
+      if (pw.length < 4) { toast("密码至少 4 位"); return; }
+      APP.setPassword(pw).then(function () { location.reload(); });
+    });
+    document.getElementById("codeCopy").addEventListener("click", function () {
+      if (!APP.hasCloud()) { toast("先设密码"); return; }
+      var code = APP.uid;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code)
+          .then(function () { toast("同步码已复制"); })
+          .catch(function () { toast(code); });
+      } else {
+        toast(code);
+      }
+    });
     document.getElementById("apiSave").addEventListener("click", function () {
-      APP.setApi(apiUrlEl.value.trim(), document.getElementById("apiKey").value.trim());
+      APP.setApi(apiUrlEl.value.trim());
       location.reload();
     });
   }

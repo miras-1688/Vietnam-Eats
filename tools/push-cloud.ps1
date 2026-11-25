@@ -4,7 +4,7 @@
 
 param(
   [Parameter(Mandatory = $true)][string]$Url,
-  [string]$Key = "",
+  [string]$User = "",
   [switch]$SkipThumbs
 )
 
@@ -17,7 +17,7 @@ $stateFile = Join-Path $root "data\state.json"
 
 $base = $Url.TrimEnd("/")
 $headers = @{}
-if ($Key) { $headers["X-Key"] = $Key }
+if ($User) { $headers["X-User"] = $User }
 
 function Post-File([string]$path, [string]$endpoint, [string]$name) {
   $bytes = [IO.File]::ReadAllBytes($path)

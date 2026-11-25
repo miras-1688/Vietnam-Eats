@@ -121,6 +121,8 @@
     border:1px solid var(--line);background:var(--panel-2);color:var(--fg);
   }
   #apiNow{color:var(--jade);margin-top:.5rem;margin-bottom:0}
+  .cloud .adv{margin-top:.8rem;border-top:1px dashed var(--line);padding-top:.7rem}
+  .cloud .adv summary{font-size:.72rem}
 </style>
 </head>
 <body>
@@ -163,12 +165,18 @@
   </p>
 
   <details class="cloud">
-    <summary>云同步（可选）</summary>
-    <p>填上 Cloudflare Worker 的地址，照片和打卡就存在云端，手机电脑共用一份。</p>
-    <input id="apiUrl" placeholder="https://xxx.workers.dev" autocomplete="off">
-    <input id="apiKey" placeholder="密钥（Worker 没设就留空）" autocomplete="off">
-    <button id="apiSave" type="button">保存并重载</button>
+    <summary>云同步</summary>
+    <p>设一个密码，照片和打卡就存到云端，换设备输同一个密码就能接着用。<br>
+      密码不上传，只在你手机里算成一个空间编号。</p>
+    <input id="pw" type="password" placeholder="密码（忘了就找不回来）" autocomplete="new-password">
+    <button id="pwSave" type="button">保存并重载</button>
+    <button id="codeCopy" type="button" class="ghost">复制同步码</button>
     <p id="apiNow"></p>
+    <details class="adv">
+      <summary>用自己的 Worker 地址</summary>
+      <input id="apiUrl" placeholder="https://xxx.workers.dev" autocomplete="off">
+      <button id="apiSave" type="button">保存地址</button>
+    </details>
   </details>
 </main>
 
@@ -193,3 +201,5 @@
 <script src="assets/upload.js"></script>
 </body>
 </html>
+
+.cloud button.ghost{background:transparent;border-color:var(--line-2);color:var(--fg-2);margin-top:.45rem}

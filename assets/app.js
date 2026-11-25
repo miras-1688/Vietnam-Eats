@@ -6,23 +6,41 @@ window.APP = (function () {
   var OLD = "hanoi-food-v1";
   var MEDIA = window.matchMedia("(prefers-color-scheme: dark)");
 
-  /* 云同步：填了 Worker 地址就走云端，没填就用本机服务 / 浏览器存储 */
+  /* 云同步：默认用公共 Worker；uid = sha256(密码)，每人一个命名空间 */
+  var DEFAULT_API = "https://vietnam-eats-api.saobi203086.workers.dev";
   function getCfg(k) {
     try { return localStorage.getItem(k) || ""; } catch (e) { return ""; }
   }
-  var apiBase = getCfg("hn-api").replace(/\/+$/, "");
-  var apiKey = getCfg("hn-key");
-  function api(path) { return apiBase ? apiBase + path : path; }
+  var apiBase = (getCfg("hn-api") || DEFAULT_API).replace(/\/+$/, "");
+  var uid = getCfg("hn-uid");
+  function api(path) { return apiBase + path; }
   function apiHeaders(extra) {
     var h = extra || {};
-    if (apiKey) h["X-Key"] = apiKey;
+    if (uid) h["X-User"] = uid;
     return h;
   }
-  function setApi(base, key) {
-    try {
-      localStorage.setItem("hn-api", (base || "").replace(/\/+$/, ""));
-      localStorage.setItem("hn-key", key || "");
-    } catch (e) {}
+  function hasCloud() { return !!uid; }
+  function setApi(base) {
+    try { localStorage.setItem("hn-api", (base || DEFAULT_API).replace(/\/+$/, "")); } catch (e) {}
+    apiBase = (base || DEFAULT_API).replace(/\/+$/, "");
+  }
+  /* 把密码变成一串固定长度的 id，密码本身不落盘 */
+  function setPassword(pw) {
+    var enc = new TextEncoder().encode("vn-eats|" + pw);
+    return crypto.subtle.digest("SHA-256", enc).then(function (buf) {
+      var hex = Array.prototype.map.call(new Uint8Array(buf), function (b) {
+        return ("0" + b.toString(16)).slice(-2);
+      }).join("");
+      uid = hex.slice(0, 40);
+      try { localStorage.setItem("hn-uid", uid); } catch (e) {}
+      serverOk = false;
+      return uid;
+    });
+  }
+  function signOut() {
+    uid = "";
+    try { localStorage.removeItem("hn-uid"); } catch (e) {}
+    serverOk = false;
   }
 
   var state = {
@@ -403,6 +421,7 @@ window.APP = (function () {
   }
 
   function loadServer() {
+    if (!hasCloud()) { serverOk = false; return Promise.resolve({}); }
     return fetch(api("/api/photos"), { cache: "no-store", headers: apiHeaders() })
       .then(function (r) {
         serverOk = r.ok;
@@ -643,9 +662,9 @@ window.APP = (function () {
     allItems: allItems, byId: byId, catName: catName, doneCount: doneCount,
     isEaten: isEaten, setEaten: setEaten, setAxis: setAxis,
     load: load, save: save, saveNow: saveNow, pullState: pullState,
-    setApi: setApi,
+    setApi: setApi, setPassword: setPassword, signOut: signOut, hasCloud: hasCloud,
+    get uid() { return uid; },
     get apiBase() { return apiBase; },
-    get apiKey() { return apiKey; },
     initTheme: initTheme, initSky: initSky,
     toast: toast, openLightbox: openLightbox, closeLightbox: closeLightbox,
     loadPhotos: loadPhotos, photoOf: photoOf, photoEntries: photoEntries, thumb: thumb,
