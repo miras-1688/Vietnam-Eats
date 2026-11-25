@@ -1,13 +1,13 @@
-# Ba Miền · 越南食单
+# Vietnam Eats · 越南食单
 
-**Ba Miền** — 越南语「三地」，指北部、中部、南部。
+在越南吃什么，一份可以照着打卡的清单。
 
 一份手写的越南吃食清单：**102 样**，按三个地区标注，配 7 条走法、点单提示和一个照片日记。
 纯静态页面，没有框架、没有构建步骤、没有后端数据库。
 
-**在线版**：https://miras-1688.github.io/ba-mien/
+**在线版**：https://miras-1688.github.io/vietnam-eats/
 
-> Ba Miền means "three regions" in Vietnamese — north, central, south. A hand-written checklist of 102 Vietnamese dishes, with walking routes, ordering tips and a photo journal. Static HTML/CSS/JS — no framework, no build step.
+> A hand-written checklist of 102 Vietnamese dishes across three regions, with walking routes, ordering tips and a photo journal. Static HTML/CSS/JS — no framework, no build step.
 
 ---
 
@@ -24,7 +24,7 @@
 
 不需要注册、不需要装 App、不需要开机：
 
-1. 打开 https://miras-1688.github.io/ba-mien/
+1. 打开 https://miras-1688.github.io/vietnam-eats/
 2. Safari → 分享 → **添加到主屏幕**
 3. 点一道菜 → `＋` → 拍照或从相册挑 → 自动摆正、加白边、缩放，**存进这台手机**
 4. 打卡、写笔记，断网也能接着用
@@ -126,7 +126,7 @@ MIT。描述有错就提 PR。
 
 A hand-written checklist of **102 Vietnamese dishes** — 34 north, 19 central, 19 south, the rest nationwide — with 7 walking routes, ordering tips and a photo journal. Static HTML/CSS/JS, no framework, no build step, no backend.
 
-**Live:** https://miras-1688.github.io/ba-mien/
+**Live:** https://miras-1688.github.io/vietnam-eats/
 
 ### How a stranger uses it
 
