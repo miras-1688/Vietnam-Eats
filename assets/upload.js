@@ -319,7 +319,15 @@
     document.getElementById("pwSave").addEventListener("click", function () {
       var pw = pwEl.value.trim();
       if (pw.length < 4) { toast("密码至少 4 位"); return; }
-      APP.setPassword(pw).then(function () { location.reload(); });
+      if (!window.crypto || !crypto.subtle) { toast("这个浏览器不支持加密，用下面的同步码"); return; }
+      try {
+        APP.setPassword(pw).then(function (id) {
+          toast("已连接 " + id.slice(0, 8));
+          location.reload();
+        }, function (e) { toast("失败了：" + (e && e.message)); });
+      } catch (e) {
+        toast("失败了：" + e.message);
+      }
     });
     document.getElementById("codeSave").addEventListener("click", function () {
       var c = document.getElementById("codeIn").value.trim();
