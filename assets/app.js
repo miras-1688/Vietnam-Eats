@@ -42,6 +42,15 @@ window.APP = (function () {
     try { localStorage.removeItem("hn-uid"); } catch (e) {}
     serverOk = false;
   }
+  /* 直接粘贴同步码（就是 uid），不需要密码 */
+  function setUid(code) {
+    var c = String(code || "").trim().toLowerCase();
+    if (!/^[a-f0-9]{16,64}$/.test(c)) return Promise.reject(new Error("bad code"));
+    uid = c;
+    try { localStorage.setItem("hn-uid", c); } catch (e) {}
+    serverOk = false;
+    return Promise.resolve(c);
+  }
 
   var state = {
     eaten: {},
@@ -662,7 +671,7 @@ window.APP = (function () {
     allItems: allItems, byId: byId, catName: catName, doneCount: doneCount,
     isEaten: isEaten, setEaten: setEaten, setAxis: setAxis,
     load: load, save: save, saveNow: saveNow, pullState: pullState,
-    setApi: setApi, setPassword: setPassword, signOut: signOut, hasCloud: hasCloud,
+    setApi: setApi, setPassword: setPassword, setUid: setUid, signOut: signOut, hasCloud: hasCloud,
     get uid() { return uid; },
     get apiBase() { return apiBase; },
     initTheme: initTheme, initSky: initSky,

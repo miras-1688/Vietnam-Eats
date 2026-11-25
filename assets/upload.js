@@ -321,6 +321,11 @@
       if (pw.length < 4) { toast("密码至少 4 位"); return; }
       APP.setPassword(pw).then(function () { location.reload(); });
     });
+    document.getElementById("codeSave").addEventListener("click", function () {
+      var c = document.getElementById("codeIn").value.trim();
+      APP.setUid(c).then(function () { location.reload(); })
+        .catch(function () { toast("同步码不对，是 40 位字母数字"); });
+    });
     document.getElementById("codeCopy").addEventListener("click", function () {
       if (!APP.hasCloud()) { toast("先设密码"); return; }
       var code = APP.uid;
