@@ -142,7 +142,8 @@ img{display:block;max-width:100%}
 @media (max-width:640px){
   .logotype .lt{display:none}
   .topbar{gap:.4rem}
-  .search{flex:1 1 60px;min-width:0;max-width:none}
+  .topbar .spacer{display:none}
+  .search{flex:1 1 auto;min-width:0;max-width:none}
   .authbtn{flex:0 0 auto;padding:0 .55rem;font-size:.74rem;gap:.3rem}
   .iconbtn{flex:0 0 auto}
 }
