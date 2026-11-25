@@ -18,3 +18,7 @@ Thumbs.db
 # 临时文件
 _*.html
 node_modules/
+
+# 本地部署配置（含账号 id，不进仓库）
+worker/wrangler.toml
+worker/.wrangler/
