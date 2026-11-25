@@ -230,50 +230,223 @@ window.APP = (function () {
   }
 
   /* ── 相册接口 ── */
-  function loadPhotos() {
+  /* ── 照片：本地优先（IndexedDB），有服务端时也读服务端 ── */
+  var DB_NAME = "vnfood", DB_VER = 1, dbP = null;
+  var urlCache = {};   // key -> {url, thumbUrl}
+  var thumbMap = {};   // url -> thumbUrl
+  var entries = {};    // id -> [{url, thumb, source, key, name, ts}]
+
+  function openDB() {
+    if (dbP) return dbP;
+    dbP = new Promise(function (resolve) {
+      if (!window.indexedDB) return resolve(null);
+      var req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains("photos")) {
+          var s = db.createObjectStore("photos", { keyPath: "key" });
+          s.createIndex("id", "id", { unique: false });
+        }
+        if (!db.objectStoreNames.contains("meta")) {
+          db.createObjectStore("meta", { keyPath: "k" });
+        }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { resolve(null); };
+    });
+    return dbP;
+  }
+  function dbAll(store) {
+    return openDB().then(function (db) {
+      if (!db) return [];
+      return new Promise(function (resolve) {
+        try {
+          var r = db.transaction(store, "readonly").objectStore(store).getAll();
+          r.onsuccess = function () { resolve(r.result || []); };
+          r.onerror = function () { resolve([]); };
+        } catch (e) { resolve([]); }
+      });
+    });
+  }
+  function dbPut(store, rec) {
+    return openDB().then(function (db) {
+      if (!db) return false;
+      return new Promise(function (resolve) {
+        try {
+          var r = db.transaction(store, "readwrite").objectStore(store).put(rec);
+          r.onsuccess = function () { resolve(true); };
+          r.onerror = function () { resolve(false); };
+        } catch (e) { resolve(false); }
+      });
+    });
+  }
+  function dbDel(store, key) {
+    return openDB().then(function (db) {
+      if (!db) return false;
+      return new Promise(function (resolve) {
+        try {
+          var r = db.transaction(store, "readwrite").objectStore(store).delete(key);
+          r.onsuccess = function () { resolve(true); };
+          r.onerror = function () { resolve(false); };
+        } catch (e) { resolve(false); }
+      });
+    });
+  }
+
+  function loadLocal() {
+    return Promise.all([dbAll("photos"), dbAll("meta")]).then(function (r) {
+      var recs = r[0], metas = r[1], covers = {};
+      metas.forEach(function (m) {
+        if (m && typeof m.k === "string" && m.k.indexOf("cover:") === 0) covers[m.k.slice(6)] = m.v;
+      });
+      var byId = {};
+      recs.forEach(function (rec) {
+        if (!rec || !rec.blob) return;
+        if (!byId[rec.id]) byId[rec.id] = [];
+        byId[rec.id].push(rec);
+      });
+      var out = {};
+      Object.keys(byId).forEach(function (id) {
+        var list = byId[id].slice().sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+        var cv = covers[id];
+        if (cv) {
+          for (var k = 0; k < list.length; k++) {
+            if (list[k].key === cv && k > 0) { list.unshift(list.splice(k, 1)[0]); break; }
+          }
+        }
+        out[id] = list.map(function (rec) {
+          var c = urlCache[rec.key];
+          if (!c) {
+            var t = null;
+            try { t = rec.thumb ? URL.createObjectURL(rec.thumb) : null; } catch (e) {}
+            c = { url: URL.createObjectURL(rec.blob), thumbUrl: t };
+            urlCache[rec.key] = c;
+          }
+          return {
+            url: c.url, thumb: c.thumbUrl || c.url,
+            source: "local", key: rec.key, name: rec.key, ts: rec.ts
+          };
+        });
+      });
+      return out;
+    });
+  }
+
+  function loadServer() {
     return fetch("api/photos", { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : { photos: {} }; })
+      .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        photos = (j && j.photos) || {};
-        photosReady = true;
-        return photos;
+        var out = {};
+        if (!j || !j.photos) return out;
+        Object.keys(j.photos).forEach(function (id) {
+          out[id] = (j.photos[id] || []).map(function (u) {
+            var name = u.split("/").pop();
+            try { name = decodeURIComponent(name); } catch (e) {}
+            return {
+              url: u, thumb: u.replace("/images/", "/images/thumbs/"),
+              source: "server", name: name
+            };
+          });
+        });
+        return out;
       })
-      .catch(function () { photos = {}; photosReady = true; return photos; });
+      .catch(function () { return {}; });
   }
+
+  function loadPhotos() {
+    return Promise.all([loadServer(), loadLocal()]).then(function (r) {
+      var server = r[0], local = r[1];
+      entries = {};
+      photos = {};
+      thumbMap = {};
+      Object.keys(server).forEach(function (id) { entries[id] = server[id].slice(); });
+      Object.keys(local).forEach(function (id) {
+        entries[id] = (entries[id] || []).concat(local[id]);
+      });
+      Object.keys(entries).forEach(function (id) {
+        photos[id] = entries[id].map(function (e) {
+          thumbMap[e.url] = e.thumb;
+          return e.url;
+        });
+      });
+      photosReady = true;
+      return photos;
+    });
+  }
+
   function photoOf(id) {
-    var a = photos[id];
-    return (a && a.length) ? a[0] : null;
+    var a = entries[id];
+    return (a && a.length) ? a[0].url : null;
   }
+  function photoEntries(id) { return entries[id] || []; }
+
   /* 卡片和相册走缩略图，抽屉和灯箱才加载原图 */
   function thumb(url) {
     if (!url) return url;
-    return url.replace("/images/", "/images/thumbs/");
+    return thumbMap[url] || url.replace("/images/", "/images/thumbs/");
   }
-  function uploadPhoto(id, file) {
-    var ext = (file.name.match(/\.[a-zA-Z0-9]+$/) || [".jpg"])[0].toLowerCase();
-    var name = id + "__" + Date.now().toString(36) + ext;
-    return fetch("api/photos?name=" + encodeURIComponent(name), {
+
+  function postBlob(url, blob) {
+    return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": file.type || "application/octet-stream" },
-      body: file
-    }).then(function (r) {
-      if (!r.ok) throw new Error("upload failed");
-      return r.json();
-    }).then(function (j) {
-      if (!photos[id]) photos[id] = [];
-      photos[id].unshift(j.url);
-      return j.url;
+      headers: { "Content-Type": "image/jpeg" },
+      body: blob
+    }).then(function (r) { return r.ok; }).catch(function () { return false; });
+  }
+
+  /* 有服务端就写进 images/，没有就存进这台设备的浏览器 */
+  function addPhoto(id, big, small) {
+    var name = id + "__" + Date.now().toString(36) + ".jpg";
+    return postBlob("api/photos?name=" + encodeURIComponent(name), big).then(function (ok) {
+      if (ok) {
+        return postBlob("api/thumbs?name=" + encodeURIComponent(name), small)
+          .catch(function () {})
+          .then(function () { return { where: "server", name: name }; });
+      }
+      return dbPut("photos", { key: name, id: id, ts: Date.now(), blob: big, thumb: small })
+        .then(function (saved) {
+          if (!saved) throw new Error("storage");
+          return { where: "local", name: name };
+        });
     });
   }
-  function deletePhoto(url) {
-    var name = url.split("/").pop();
-    return fetch("api/photos?name=" + encodeURIComponent(name), { method: "DELETE" })
-      .then(function (r) { if (!r.ok) throw new Error("delete failed"); return true; });
+
+  function deleteByUrl(url) {
+    var hit = null;
+    Object.keys(entries).forEach(function (id) {
+      entries[id].forEach(function (e) { if (e.url === url) hit = { id: id, e: e }; });
+    });
+    if (!hit) return Promise.resolve(false);
+    var e = hit.e;
+    if (e.source === "server") {
+      return fetch("api/photos?name=" + encodeURIComponent(e.name), { method: "DELETE" })
+        .then(function (r) { return r.ok; }).catch(function () { return false; });
+    }
+    return dbDel("photos", e.key).then(function () {
+      var c = urlCache[e.key];
+      if (c) {
+        try { URL.revokeObjectURL(c.url); } catch (err) {}
+        if (c.thumbUrl) { try { URL.revokeObjectURL(c.thumbUrl); } catch (err) {} }
+        delete urlCache[e.key];
+      }
+      return true;
+    });
   }
+
+  function coverByUrl(id, url) {
+    var e = (entries[id] || []).filter(function (x) { return x.url === url; })[0];
+    if (!e) return Promise.resolve(false);
+    if (e.source === "server") {
+      return fetch("api/cover?name=" + encodeURIComponent(e.name), { method: "POST" })
+        .then(function (r) { return r.ok; }).catch(function () { return false; });
+    }
+    return dbPut("meta", { k: "cover:" + id, v: e.key });
+  }
+
   function allPhotos() {
     var out = [];
-    Object.keys(photos).forEach(function (id) {
-      photos[id].forEach(function (u) { out.push({ id: id, url: u }); });
+    Object.keys(entries).forEach(function (id) {
+      entries[id].forEach(function (e) { out.push({ id: id, url: e.url }); });
     });
     return out;
   }
@@ -382,8 +555,8 @@ window.APP = (function () {
     load: load, save: save, saveNow: saveNow,
     initTheme: initTheme, initSky: initSky,
     toast: toast, openLightbox: openLightbox, closeLightbox: closeLightbox,
-    loadPhotos: loadPhotos, photoOf: photoOf, thumb: thumb, uploadPhoto: uploadPhoto,
-    deletePhoto: deletePhoto, allPhotos: allPhotos,
+    loadPhotos: loadPhotos, photoOf: photoOf, photoEntries: photoEntries, thumb: thumb,
+    addPhoto: addPhoto, deleteByUrl: deleteByUrl, coverByUrl: coverByUrl, allPhotos: allPhotos,
     get photos() { return photos; },
     get photosReady() { return photosReady; },
     searchItems: searchItems, mountSearch: mountSearch,

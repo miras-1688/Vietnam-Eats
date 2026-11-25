@@ -17,8 +17,21 @@
 |---|---|
 | 数据 | `assets/data.js` 里 102 条记录，每行一个菜：越南名、中文名、区域、分类、价格、怎么吃 |
 | 界面 | 三个静态页：首页（进度总览）、食单（筛选 / 抽屉 / 相册）、传图页 |
-| 服务 | 可选的 60 行 Node 服务，零依赖，只管两件事：存照片、记封面。没有它站点照样能看，只是不能传图 |
-| 状态 | 打卡和笔记存在浏览器 `localStorage`，不上传任何地方 |
+| 服务 | **可选**的 60 行 Node 服务，零依赖。没有它照样能打卡、能传图 |
+| 状态 | 打卡、笔记、照片都存在浏览器自己的 `localStorage` / `IndexedDB` 里，不上传任何地方 |
+
+## 路人怎么用
+
+不需要注册、不需要装 App、不需要开机：
+
+1. 打开 https://miras-1688.github.io/vietnam-food-list/
+2. Safari → 分享 → **添加到主屏幕**
+3. 点一道菜 → `＋` → 拍照或从相册挑 → 自动摆正、加白边、缩放，**存进这台手机**
+4. 打卡、写笔记，断网也能接着用
+
+照片和进度跟着那台设备走，换手机或清缓存就没了——所以显示「已吃」用的是这台机器自己的记录。
+
+如果你自己在电脑上跑 `node server.js`，传图会直接写进 `images/` 文件夹，和以前一样。
 
 ## 内容
 
@@ -32,7 +45,7 @@
 
 只想看：双击 `index.html`。
 
-要传图（需要 Node 18+，无第三方依赖）：
+想在电脑上管理照片（Node 18+，无第三方依赖）：
 
 ```bash
 node server.js
@@ -40,15 +53,13 @@ node server.js
 ```
 
 Windows 也可以双击 `start.bat`。启动器会打印一个局域网地址，手机连同一个 Wi-Fi 打开 `/upload.html`，
-就能直接拍照上传——照片在浏览器里加工，不经过任何第三方。
+传的图会写进 `images/`。服务没开的时候，传的图就存在手机浏览器里。
 
 ## 部署到 GitHub Pages
 
 1. Fork 或 clone
 2. Settings → Pages → Branch 选 `main`，目录 `/`
-3. 完成。纯静态，不需要后端。
-
-线上版不能传图（没有服务端）。本地传完 push 一次就更新。
+3. 完成。纯静态，不需要后端，**路人打开就能打卡、能传图**（存在他们自己的设备上）。
 
 ## 改内容
 
@@ -117,21 +128,29 @@ A hand-written checklist of **102 Vietnamese dishes** — 34 north, 19 central, 
 
 **Live:** https://miras-1688.github.io/vietnam-food-list/
 
+### How a stranger uses it
+
+No sign-up, no install, no server:
+
+1. Open the link, then Safari → Share → **Add to Home Screen**
+2. Tap a dish → `＋` → shoot or pick a photo → it's straightened, white-framed and resized **on the device**
+3. Check dishes off, write notes; works offline
+
+Photos and progress live in that device's browser (`IndexedDB` / `localStorage`). Clearing site data or switching phones starts fresh.
+
 ### Run locally
 
 Reading only: open `index.html`.
 
-Photo upload needs the tiny Node server (Node 18+, zero dependencies):
+Photo management on your own machine needs the tiny Node server (Node 18+, zero dependencies):
 
 ```bash
 node server.js    # → http://localhost:8787/
 ```
 
-On Windows, `start.bat` works too. It prints a LAN address — open `/upload.html` on your phone over the same Wi-Fi and add photos straight from the camera roll. Images are straightened, white-framed and resized in the browser; nothing is uploaded anywhere.
-
 ### Deploy
 
-Settings → Pages → branch `main`, folder `/`. That's it — it's static. Uploads are unavailable on Pages; upload locally and push.
+Settings → Pages → branch `main`, folder `/`. That's it — static, and visitors can still check in and add photos, stored on their own device.
 
 ### Editing
 

@@ -187,28 +187,26 @@
   }
 
   function setCover(id, url) {
-    fetch("api/cover?name=" + encodeURIComponent(fileName(url)), { method: "POST" })
-      .then(function (r) { if (!r.ok) throw new Error("cover"); return r.json(); })
-      .then(function () { return APP.loadPhotos(); })
-      .then(function () {
-        render();
-        openSheet(id);
-        toast("封面换了");
-      })
-      .catch(function () { toast("换不了，确认是用启动器起的服务"); });
+    APP.coverByUrl(id, url).then(function (ok) {
+      if (!ok) throw new Error("cover");
+      return APP.loadPhotos();
+    }).then(function () {
+      render();
+      openSheet(id);
+      toast("封面换了");
+    }).catch(function () { toast("换不了，再试一次"); });
   }
 
   function removePhoto(id, url) {
-    fetch("api/photos?name=" + encodeURIComponent(fileName(url)), { method: "DELETE" })
-      .then(function (r) { if (!r.ok) throw new Error("del"); return r.json(); })
-      .then(function () { return APP.loadPhotos(); })
-      .then(function () {
-        render();
-        if (APP.photos[id] && APP.photos[id].length) openSheet(id);
-        else closeSheet();
-        toast("删了");
-      })
-      .catch(function () { toast("删不掉"); });
+    APP.deleteByUrl(url).then(function (ok) {
+      if (!ok) throw new Error("del");
+      return APP.loadPhotos();
+    }).then(function () {
+      render();
+      if (APP.photos[id] && APP.photos[id].length) openSheet(id);
+      else closeSheet();
+      toast("删了");
+    }).catch(function () { toast("删不掉"); });
   }
 
   function pickFor(id) {
@@ -272,23 +270,18 @@
       var small = frame(img, 480, 360, 22);
       return Promise.all([toBlob(big, 0.85), toBlob(small, 0.82)]);
     }).then(function (blobs) {
-      var name = id + "__" + Date.now().toString(36) + ".jpg";
-      return post("api/photos?name=" + encodeURIComponent(name), blobs[0])
-        .then(function () {
-          return post("api/thumbs?name=" + encodeURIComponent(name), blobs[1])
-            .catch(function () {});
-        });
-    }).then(function () {
-      return APP.loadPhotos();
-    }).then(function () {
+      return APP.addPhoto(id, blobs[0], blobs[1]);
+    }).then(function (res) {
+      return APP.loadPhotos().then(function () { return res; });
+    }).then(function (res) {
       render();
       if (sheetId === id) openSheet(id);
-      toast("传好了");
+      toast(res.where === "local" ? "存在这台手机里了" : "传好了");
       if (navigator.vibrate) navigator.vibrate(18);
     }).catch(function (e) {
       if (btn) btn.classList.remove("busy");
-      toast(e && String(e.message).indexOf("upload") === 0
-        ? "传不上去，确认是用启动器起的服务"
+      toast(e && String(e.message).indexOf("storage") >= 0
+        ? "这个浏览器不让存，换个浏览器试试"
         : "这张图读不了，换一张试试");
     });
   });

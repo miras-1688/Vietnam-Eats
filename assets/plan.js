@@ -461,8 +461,10 @@
       clearTimeout(armT);
       var url = APP.photoOf(id);
       if (!url) return;
-      APP.deletePhoto(url).then(function () {
-        APP.photos[id] = (APP.photos[id] || []).filter(function (u) { return u !== url; });
+      APP.deleteByUrl(url).then(function (ok) {
+        if (!ok) throw new Error("del");
+        return APP.loadPhotos();
+      }).then(function () {
         paintPhoto(id);
         paintDrawerPhoto();
         renderAlbum();
