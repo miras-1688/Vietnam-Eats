@@ -102,6 +102,25 @@
   }
   :root[data-theme="light"] .sheet-foot button{color:#FFFDF6}
   .sheet-empty{padding:1.4rem;text-align:center;color:var(--fg-3);font-size:.85rem;grid-column:1/-1}
+
+  /* 云同步 */
+  .cloud{margin-top:1.4rem;border-top:1px solid var(--line);padding-top:1rem}
+  .cloud summary{font-size:.78rem;color:var(--fg-3);cursor:pointer;list-style:none}
+  .cloud summary::-webkit-details-marker{display:none}
+  .cloud summary::before{content:"＋ ";color:var(--gold)}
+  .cloud[open] summary::before{content:"− "}
+  .cloud p{font-size:.75rem;color:var(--fg-3);line-height:1.7;margin:.6rem 0}
+  .cloud input{
+    display:block;width:100%;margin-bottom:.45rem;padding:.55rem .7rem;
+    font:inherit;font-size:.82rem;color:var(--fg);
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  }
+  .cloud input:focus{outline:none;border-color:var(--line-2)}
+  .cloud button{
+    width:100%;padding:.6rem;border-radius:9px;font-size:.85rem;font-weight:600;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--fg);
+  }
+  #apiNow{color:var(--jade);margin-top:.5rem;margin-bottom:0}
 </style>
 </head>
 <body>
@@ -142,6 +161,15 @@
     照片存在<b>这台设备的浏览器</b>里；如果你电脑上的服务开着，就直接写进 <b>images/</b> 文件夹。<br>
     在 Safari 里「添加到主屏幕」，浏览器更不容易把数据清掉。
   </p>
+
+  <details class="cloud">
+    <summary>云同步（可选）</summary>
+    <p>填上 Cloudflare Worker 的地址，照片和打卡就存在云端，手机电脑共用一份。</p>
+    <input id="apiUrl" placeholder="https://xxx.workers.dev" autocomplete="off">
+    <input id="apiKey" placeholder="密钥（Worker 没设就留空）" autocomplete="off">
+    <button id="apiSave" type="button">保存并重载</button>
+    <p id="apiNow"></p>
+  </details>
 </main>
 
 <input type="file" id="picker" accept="image/*" hidden>

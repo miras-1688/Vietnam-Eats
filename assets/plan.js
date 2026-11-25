@@ -801,7 +801,7 @@
   renderAddCard();
   initBackup();
   initTools();
-  APP.loadPhotos().then(renderGrid);
+  APP.loadPhotos().then(APP.pullState).then(renderGrid);
   Array.prototype.forEach.call(document.getElementById("sortSeg").children, function (x) {
     x.setAttribute("aria-pressed", x.dataset.s === state.sort ? "true" : "false");
   });

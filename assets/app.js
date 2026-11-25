@@ -6,6 +6,25 @@ window.APP = (function () {
   var OLD = "hanoi-food-v1";
   var MEDIA = window.matchMedia("(prefers-color-scheme: dark)");
 
+  /* 云同步：填了 Worker 地址就走云端，没填就用本机服务 / 浏览器存储 */
+  function getCfg(k) {
+    try { return localStorage.getItem(k) || ""; } catch (e) { return ""; }
+  }
+  var apiBase = getCfg("hn-api").replace(/\/+$/, "");
+  var apiKey = getCfg("hn-key");
+  function api(path) { return apiBase ? apiBase + path : path; }
+  function apiHeaders(extra) {
+    var h = extra || {};
+    if (apiKey) h["X-Key"] = apiKey;
+    return h;
+  }
+  function setApi(base, key) {
+    try {
+      localStorage.setItem("hn-api", (base || "").replace(/\/+$/, ""));
+      localStorage.setItem("hn-key", key || "");
+    } catch (e) {}
+  }
+
   var state = {
     eaten: {},
     uneaten: {},
@@ -38,15 +57,52 @@ window.APP = (function () {
     }
   }
   var t = null;
+  function pushState() {
+    if (!serverOk) return;
+    try {
+      fetch(api("/api/state"), {
+        method: "POST",
+        headers: apiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(state)
+      }).catch(function () {});
+    } catch (e) {}
+  }
   function save() {
+    state.updatedAt = Date.now();
     clearTimeout(t);
     t = setTimeout(function () {
       try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      pushState();
     }, 180);
   }
   function saveNow() {
+    state.updatedAt = Date.now();
     clearTimeout(t);
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    pushState();
+  }
+
+  /* 有服务端时，用磁盘上的 state.json 和浏览器里的对一下，新的赢 */
+  function pullState() {
+    if (!serverOk) return Promise.resolve();
+    return fetch(api("/api/state"), { cache: "no-store", headers: apiHeaders() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (remote) {
+        if (!remote || !remote.eaten) return;
+        var lt = state.updatedAt || 0, rt = remote.updatedAt || 0;
+        if (rt > lt) {
+          state.eaten = remote.eaten || {};
+          state.uneaten = remote.uneaten || {};
+          state.notes = remote.notes || {};
+          state.custom = remote.custom || [];
+          if (remote.target) state.target = remote.target;
+          state.updatedAt = rt;
+          try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+        } else if (lt > rt) {
+          pushState();
+        }
+      })
+      .catch(function () {});
   }
 
   /* ── 数据 ── */
@@ -347,7 +403,7 @@ window.APP = (function () {
   }
 
   function loadServer() {
-    return fetch("api/photos", { cache: "no-store" })
+    return fetch(api("/api/photos"), { cache: "no-store", headers: apiHeaders() })
       .then(function (r) {
         serverOk = r.ok;
         return r.ok ? r.json() : null;
@@ -407,7 +463,7 @@ window.APP = (function () {
     var ctrl = null, timer = null;
     var opts = {
       method: "POST",
-      headers: { "Content-Type": "image/jpeg" },
+      headers: apiHeaders({ "Content-Type": "image/jpeg" }),
       body: blob
     };
     if (window.AbortController) {
@@ -437,9 +493,9 @@ window.APP = (function () {
   function addPhoto(id, big, small) {
     if (!serverOk) return saveLocal(id, big, small);
     var name = id + "__" + Date.now().toString(36) + ".jpg";
-    return postBlob("api/photos?name=" + encodeURIComponent(name), big).then(function (ok) {
+    return postBlob(api("/api/photos?name=" + encodeURIComponent(name)), big).then(function (ok) {
       if (!ok) return saveLocal(id, big, small);
-      return postBlob("api/thumbs?name=" + encodeURIComponent(name), small)
+      return postBlob(api("/api/thumbs?name=" + encodeURIComponent(name)), small)
         .catch(function () {})
         .then(function () { return { where: "server", name: name }; });
     });
@@ -453,7 +509,7 @@ window.APP = (function () {
     if (!hit) return Promise.resolve(false);
     var e = hit.e;
     if (e.source === "server") {
-      return fetch("api/photos?name=" + encodeURIComponent(e.name), { method: "DELETE" })
+      return fetch(api("/api/photos?name=" + encodeURIComponent(e.name)), { method: "DELETE", headers: apiHeaders() })
         .then(function (r) { return r.ok; }).catch(function () { return false; });
     }
     return withTimeout(dbDel("photos", e.key), 3000, false).then(function (ok) {
@@ -471,7 +527,7 @@ window.APP = (function () {
     var e = (entries[id] || []).filter(function (x) { return x.url === url; })[0];
     if (!e) return Promise.resolve(false);
     if (e.source === "server") {
-      return fetch("api/cover?name=" + encodeURIComponent(e.name), { method: "POST" })
+      return fetch(api("/api/cover?name=" + encodeURIComponent(e.name)), { method: "POST", headers: apiHeaders() })
         .then(function (r) { return r.ok; }).catch(function () { return false; });
     }
     return withTimeout(dbPut("meta", { k: "cover:" + id, v: e.key }), 3000, false);
@@ -586,7 +642,10 @@ window.APP = (function () {
     get state() { return state; },
     allItems: allItems, byId: byId, catName: catName, doneCount: doneCount,
     isEaten: isEaten, setEaten: setEaten, setAxis: setAxis,
-    load: load, save: save, saveNow: saveNow,
+    load: load, save: save, saveNow: saveNow, pullState: pullState,
+    setApi: setApi,
+    get apiBase() { return apiBase; },
+    get apiKey() { return apiKey; },
     initTheme: initTheme, initSky: initSky,
     toast: toast, openLightbox: openLightbox, closeLightbox: closeLightbox,
     loadPhotos: loadPhotos, photoOf: photoOf, photoEntries: photoEntries, thumb: thumb,

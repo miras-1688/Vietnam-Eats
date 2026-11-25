@@ -13,6 +13,8 @@ const ROOT = __dirname;
 const IMG_DIR = path.join(ROOT, "images");
 const THUMB_DIR = path.join(IMG_DIR, "thumbs");
 const COVERS_FILE = path.join(IMG_DIR, "covers.json");
+const DATA_DIR = path.join(ROOT, "data");
+const STATE_FILE = path.join(DATA_DIR, "state.json");
 const PORT = Number(process.env.PORT || 8787);
 const MAX_BODY = 25 * 1024 * 1024;
 
@@ -107,6 +109,42 @@ function serveStatic(req, res, pathname) {
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, "http://" + (req.headers.host || "localhost"));
   const p = u.pathname;
+
+  /* 打卡状态落盘：/api/state */
+  if (p === "/api/state") {
+    if (req.method === "GET") {
+      try {
+        return send(res, 200, fs.readFileSync(STATE_FILE, "utf8"), MIME[".json"]);
+      } catch (e) {
+        return send(res, 200, "{}", MIME[".json"]);
+      }
+    }
+    if (req.method === "POST") {
+      let size = 0;
+      const chunks = [];
+      let aborted = false;
+      req.on("data", (c) => {
+        size += c.length;
+        if (size > 5 * 1024 * 1024) { aborted = true; req.destroy(); return; }
+        chunks.push(c);
+      });
+      req.on("end", () => {
+        if (aborted) return;
+        try {
+          if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+          const raw = Buffer.concat(chunks).toString("utf8");
+          JSON.parse(raw); // 校验一下，坏数据不写盘
+          fs.writeFileSync(STATE_FILE, raw, "utf8");
+          send(res, 200, JSON.stringify({ ok: true }), MIME[".json"]);
+        } catch (e) {
+          send(res, 400, JSON.stringify({ error: "bad json" }), MIME[".json"]);
+        }
+      });
+      req.on("error", () => {});
+      return;
+    }
+    return send(res, 405, "method not allowed");
+  }
 
   /* 设定封面：/api/cover?name=<文件名> */
   if (p === "/api/cover") {

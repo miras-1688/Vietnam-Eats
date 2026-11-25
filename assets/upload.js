@@ -302,5 +302,20 @@
     window.__qt = setTimeout(function () { query = v; render(); }, 120);
   });
 
-  APP.loadPhotos().then(render);
+  /* ── 云同步设置 ── */
+  var apiUrlEl = document.getElementById("apiUrl");
+  if (apiUrlEl) {
+    apiUrlEl.value = APP.apiBase || "";
+    document.getElementById("apiKey").value = APP.apiKey || "";
+    var nowEl = document.getElementById("apiNow");
+    nowEl.textContent = APP.apiBase ? "当前：云同步已开启" : "当前：只存本机";
+    document.getElementById("apiSave").addEventListener("click", function () {
+      APP.setApi(apiUrlEl.value.trim(), document.getElementById("apiKey").value.trim());
+      location.reload();
+    });
+  }
+
+  APP.loadPhotos().then(function () {
+    return APP.pullState();
+  }).then(render);
 })();

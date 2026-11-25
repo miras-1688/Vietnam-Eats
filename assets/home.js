@@ -114,7 +114,7 @@
     document.getElementById("fTarget").textContent = "离越 " + state.target;
   }
 
-  APP.loadPhotos().then(start);
+  APP.loadPhotos().then(APP.pullState).then(start);
 
   /* ── 搜索 ── */
   APP.mountSearch(document.getElementById("q"), {

@@ -1,0 +1,12 @@
+name = "vietnam-eats-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# 先跑 `npx wrangler kv namespace create FOOD`，把返回的 id 填进来
+[[kv_namespaces]]
+binding = "FOOD"
+id = "在这里填 KV 命名空间 id"
+
+# 可选：设一个共享密钥，前端要带 X-Key 才给访问
+# [vars]
+# SHARED_KEY = "换成一串你自己的随机字符"

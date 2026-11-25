@@ -61,6 +61,27 @@ Windows 也可以双击 `start.bat`。启动器会打印一个局域网地址，
 2. Settings → Pages → Branch 选 `main`，目录 `/`
 3. 完成。纯静态，不需要后端，**路人打开就能打卡、能传图**（存在他们自己的设备上）。
 
+## 云同步（可选）
+
+想让手机和电脑共用一份照片和打卡，就部署一个 Cloudflare Worker。**免费额度足够个人用**，
+照片不公开（存在 KV 里，只有知道地址和密钥的人能访问）。
+
+```bash
+cd worker
+npx wrangler login                                  # 浏览器里登录 Cloudflare
+npx wrangler kv namespace create FOOD               # 把返回的 id 填进 wrangler.toml
+npx wrangler deploy                                 # 得到 https://vietnam-eats-api.xxx.workers.dev
+```
+
+想加个访问密钥：在 `wrangler.toml` 里取消 `[vars]` 的注释，设一个 `SHARED_KEY`，重新 deploy。
+
+然后打开线上站点的 `/upload.html`，展开最下面「云同步」，填 Worker 地址和密钥，保存。
+
+之后照片和打卡都走云端，**手机拍的在电脑上能看到，反之亦然**。填之前的状态不会自动搬过去——
+先在电脑上用「吃之前 → 复制备份」导一次，再到云同步版的同一位置粘贴恢复。
+
+不填也能用：默认就是只存本机。
+
 ## 改内容
 
 全部在 `assets/data.js`：
