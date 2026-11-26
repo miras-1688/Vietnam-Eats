@@ -85,7 +85,7 @@ window.HN = (function () {
     { id: "com-ga-hoian", vn: "Cơm gà Hội An", zh: "会安鸡饭", cat: "rice", region: "trung", area: "会安", price: "50–80k", rating: 5,
       tip: "姜黄饭配手撕鸡、香草和洋葱醋，米饭用鸡油煮过。会安市场里那几家最有名。" },
     { id: "com-ga-xoi-mo", vn: "Cơm gà xối mỡ", zh: "油淋鸡饭", cat: "rice", region: "nam", area: "西贡", price: "60–90k", rating: 4,
-      tip: "整只鸡用滚油淋熟，皮脆肉嫩，配鸡油饭和酸菜。西贡夜宵名物。" },
+      tip: "鸡先白切，再浇滚油把皮烫脆，配鸡油饭、酸菜和姜葱汁。南部街头最常见，河内多是海南鸡饭底子。" },
     { id: "chao-long", vn: "Cháo lòng", zh: "猪杂粥", cat: "rice", region: "bac", area: "全城", price: "40–60k", rating: 3,
       tip: "米粥配猪血、猪肝、肠，撒胡椒和油条。冬天早上吃一碗。" },
     { id: "lau-hai-san", vn: "Lẩu hải sản", zh: "海鲜火锅", cat: "rice", region: "all", area: "全城", price: "200–400k/锅", rating: 4,
