@@ -531,6 +531,47 @@ window.APP = (function () {
       });
   }
 
+  /* 图片加工：等比裁切填满 + 白边，出大图和缩略图 */
+  function frameCanvas(img, W, H, M) {
+    var c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    var g = c.getContext("2d");
+    g.fillStyle = "#ffffff";
+    g.fillRect(0, 0, W, H);
+    var aw = W - 2 * M, ah = H - 2 * M;
+    var s = Math.max(aw / img.width, ah / img.height);
+    var dw = img.width * s, dh = img.height * s;
+    g.save();
+    g.beginPath(); g.rect(M, M, aw, ah); g.clip();
+    g.drawImage(img, M + (aw - dw) / 2, M + (ah - dh) / 2, dw, dh);
+    g.restore();
+    return c;
+  }
+  function toBlobP(canvas, q) {
+    return new Promise(function (r) { canvas.toBlob(r, "image/jpeg", q); });
+  }
+  function processImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        try {
+          var big = frameCanvas(img, 1600, 1200, 72);
+          var small = frameCanvas(img, 480, 360, 22);
+          Promise.all([toBlobP(big, 0.85), toBlobP(small, 0.82)])
+            .then(function (b) {
+              if (!b[0] || !b[1]) return reject(new Error("转换失败"));
+              resolve({ big: b[0], small: b[1] });
+            })
+            .catch(reject);
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("这张图读不了")); };
+      img.src = url;
+    });
+  }
+
   /* 有服务端就写进 images/，没有就存进这台设备的浏览器 */
   function addPhoto(id, big, small) {
     if (!serverOk) return saveLocal(id, big, small);
@@ -770,6 +811,7 @@ window.APP = (function () {
     toast: toast, openLightbox: openLightbox, closeLightbox: closeLightbox,
     loadPhotos: loadPhotos, photoOf: photoOf, photoEntries: photoEntries, thumb: thumb,
     addPhoto: addPhoto, deleteByUrl: deleteByUrl, coverByUrl: coverByUrl, allPhotos: allPhotos,
+    processImage: processImage,
     get photos() { return photos; },
     get photosReady() { return photosReady; },
     searchItems: searchItems, mountSearch: mountSearch,

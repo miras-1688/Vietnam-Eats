@@ -353,15 +353,20 @@
 
   function uploadFor(id, file) {
     if (!/^image\//.test(file.type || "")) { APP.toast("只能放图片"); return; }
-    if (file.size > 20 * 1024 * 1024) { APP.toast("太大了，20MB 以内"); return; }
-    APP.toast("上传中…");
-    APP.uploadPhoto(id, file).then(function () {
+    if (file.size > 25 * 1024 * 1024) { APP.toast("太大了，25MB 以内"); return; }
+    APP.toast("处理中…");
+    APP.processImage(file).then(function (b) {
+      return APP.addPhoto(id, b.big, b.small);
+    }).then(function (res) {
+      return APP.loadPhotos().then(function () { return res; });
+    }).then(function (res) {
       paintPhoto(id);
       renderAlbum();
+      refreshStats();
       if (openId === id) paintDrawerPhoto();
-      APP.toast("照片已存进 images/");
-    }).catch(function () {
-      APP.toast("存不进去。确认是用 start.bat 启动的，不是直接双击 html。");
+      APP.toast(res.where === "local" ? "存在这台设备了" : "传好了");
+    }).catch(function (e) {
+      APP.toast("照片没传上：" + (e && e.message ? e.message : "读取失败"));
     });
   }
 
