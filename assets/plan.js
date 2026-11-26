@@ -807,6 +807,11 @@
   initBackup();
   initTools();
   APP.loadPhotos().then(APP.pullState).then(renderGrid);
+
+  /* 断网拍的照片补传成功后，重排一次 */
+  window.addEventListener("hn-synced", function () {
+    APP.loadPhotos().then(renderGrid);
+  });
   Array.prototype.forEach.call(document.getElementById("sortSeg").children, function (x) {
     x.setAttribute("aria-pressed", x.dataset.s === state.sort ? "true" : "false");
   });

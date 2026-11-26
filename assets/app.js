@@ -522,12 +522,14 @@ window.APP = (function () {
     });
   }
 
-  function saveLocal(id, big, small) {
+  function saveLocal(id, big, small, pending) {
     var name = id + "__" + Date.now().toString(36) + ".jpg";
-    return withTimeout(dbPut("photos", { key: name, id: id, ts: Date.now(), blob: big, thumb: small }), 3000, false)
+    return withTimeout(dbPut("photos", {
+      key: name, id: id, ts: Date.now(), blob: big, thumb: small, pending: !!pending
+    }), 3000, false)
       .then(function (ok) {
         if (!ok) throw new Error("storage");
-        return { where: "local", name: name };
+        return { where: "local", name: name, pending: !!pending };
       });
   }
 
@@ -572,12 +574,56 @@ window.APP = (function () {
     });
   }
 
+  /* 联网后把待传的照片补上去 */
+  function flushPending() {
+    if (!hasCloud()) return Promise.resolve(0);
+    return fetch(api("/api/photos"), { cache: "no-store", headers: apiHeaders() })
+      .then(function (r) { return r.ok; })
+      .catch(function () { return false; })
+      .then(function (ok) {
+        if (!ok) return 0;
+        serverOk = true;
+        return dbAll("photos").then(function (recs) {
+          var todo = (recs || []).filter(function (r) { return r && r.pending; });
+          var done = 0;
+          return todo.reduce(function (chain, rec) {
+            return chain.then(function () {
+              return postBlob(api("/api/photos?name=" + encodeURIComponent(rec.key)), rec.blob)
+                .then(function (sent) {
+                  if (!sent) return;
+                  var t = rec.thumb
+                    ? postBlob(api("/api/thumbs?name=" + encodeURIComponent(rec.key)), rec.thumb)
+                    : Promise.resolve(true);
+                  return t.then(function () { return dbDel("photos", rec.key); })
+                          .then(function () {
+                            done++;
+                            if (urlCache[rec.key]) {
+                              try { URL.revokeObjectURL(urlCache[rec.key].url); } catch (e) {}
+                              if (urlCache[rec.key].thumbUrl) { try { URL.revokeObjectURL(urlCache[rec.key].thumbUrl); } catch (e) {} }
+                              delete urlCache[rec.key];
+                            }
+                          });
+                });
+            });
+          }, Promise.resolve()).then(function () { return done; });
+        });
+      })
+      .then(function (n) {
+        if (n > 0) {
+          try { window.dispatchEvent(new CustomEvent("hn-synced", { detail: { n: n } })); } catch (e) {}
+          toast(n + " 张照片补传好了");
+        }
+        return n;
+      });
+  }
+
   /* 有服务端就写进 images/，没有就存进这台设备的浏览器 */
   function addPhoto(id, big, small) {
-    if (!serverOk) return saveLocal(id, big, small);
+    if (!hasCloud()) return saveLocal(id, big, small, false);
+    if (!serverOk) return saveLocal(id, big, small, true);
     var name = id + "__" + Date.now().toString(36) + ".jpg";
     return postBlob(api("/api/photos?name=" + encodeURIComponent(name)), big).then(function (ok) {
-      if (!ok) return saveLocal(id, big, small);
+      if (!ok) return saveLocal(id, big, small, true);
       return postBlob(api("/api/thumbs?name=" + encodeURIComponent(name)), small)
         .catch(function () {})
         .then(function () { return { where: "server", name: name }; });
@@ -799,6 +845,10 @@ window.APP = (function () {
     mountAuth();
   }
 
+  /* 断网拍的照片：回到有网就补传 */
+  window.addEventListener("online", function () { flushPending(); });
+  setTimeout(function () { if (hasCloud()) flushPending(); }, 3000);
+
   return {
     get state() { return state; },
     allItems: allItems, byId: byId, catName: catName, doneCount: doneCount,
@@ -811,7 +861,7 @@ window.APP = (function () {
     toast: toast, openLightbox: openLightbox, closeLightbox: closeLightbox,
     loadPhotos: loadPhotos, photoOf: photoOf, photoEntries: photoEntries, thumb: thumb,
     addPhoto: addPhoto, deleteByUrl: deleteByUrl, coverByUrl: coverByUrl, allPhotos: allPhotos,
-    processImage: processImage,
+    processImage: processImage, flushPending: flushPending,
     get photos() { return photos; },
     get photosReady() { return photosReady; },
     searchItems: searchItems, mountSearch: mountSearch,
